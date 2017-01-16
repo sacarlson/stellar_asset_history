@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<! <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Stellar Asset Price History</title>
+ 
+ <link rel="stylesheet" href="style.css">
+ <style type="text/css">
+   p, h1, h2, h3, h4, h5, th { color: red; }
+ </style> 
+<script src='tablesort.min.js'></script>
+
+
+
+<script>
+ "use strict";
+  window.addEventListener("load", function(event) {
+    var t1 = new Tablesort(document.getElementById('table'));
+    var e = 0;
+
+    var socket;
+    var wallet_url = "http://stellar_asset_history.github.io/";
+    var url = "ws://b.funtracker.site:9494";
+    //var url = "ws://www.funtracker.site:9494";
+    //var action = '{"action":"get_ticker_list","max_last_record":"2.5"}';
+    // only list assets that order prices changed within the last 30 days
+    var action = '{"action":"get_ticker_list","max_last_record":"720"}';
+    
+      //http://www.funtracker.site/chart/index.html?json=%7b%22asset_code%22:%22THB%22,%22base_code%22:%22USD%22,%22url_ws%22:%22ws://b.funtracker.site:9494%22%7d
+     create_socket();
+
+      function create_socket() {
+
+        //socket = new WebSocket(url, "echo-protocol");
+        socket = new WebSocket(url);
+      
+        socket.addEventListener("open", function(event) {
+          console.log("Websocket Connected");
+          socket.send(action);
+        });
+   
+        
+
+        // Display messages received from the server
+        socket.addEventListener("message", function(event) {
+           var data = JSON.parse(event.data);
+           console.log("data");
+           console.log(data);    
+           var link;
+           var link_start = '<a href="./chart.html?json=%7b%22asset_code%22:%22';
+           var link_mid = '%22,%22base_code%22:%22';
+           var link_end = '%22%7d">Chart_link</a>';
+           var array_table = [];
+           var testnet_issuer = "GBEK5BFCXBYPZ5JAP2XUWM637PYBQNTL5Y2MVZYV2NBRH6OYS4HCWTWO";
+           if (data.action == "get_ticker_list"){
+              console.log("get_ticker_list detected");
+                //console.log(key, data.asset_pairs[key]);
+              for (var key in data.asset_pairs) {
+                link = link_start + data.asset_pairs[key][0] +link_mid + data.asset_pairs[key][2] + link_end;
+                console.log("link: " + link);
+                array_table[0] = key;
+                array_table[1] = data.asset_pairs[key][5];
+                array_table[2] = data.asset_pairs[key][4];
+                array_table[3] = link;
+                array_table[4] = make_wallet_trade_link(data.asset_pairs[key],wallet_url);
+                array_table[5] = data.asset_pairs[key][0];
+                if (data.asset_pairs[key][1] === null){
+                  array_table[6] = "...";
+                }else{
+                  array_table[6] = data.asset_pairs[key][1].substring(0, 5) + "...";
+                }
+                array_table[7] = data.asset_pairs[key][2];
+                if (data.asset_pairs[key][3] === null) {
+                  array_table[8] = "...";
+                }else{
+                  array_table[8] = data.asset_pairs[key][3].substring(0, 5) + "...";
+                }
+                if (data.asset_pairs[key][1] != testnet_issuer && data.asset_pairs[key][3] != testnet_issuer) {
+                  insRow(array_table,"table");
+                }
+              }
+           }
+        });
+
+
+        // Display any errors that occur
+        socket.addEventListener("error", function(event) {
+          console.log("socket error: " + event);
+        });
+
+        socket.addEventListener("close", function(event) {
+          console.log("socket close");
+        });
+      }
+
+     function make_wallet_trade_link(data,_wallet_url){
+       //https://sacarlson.github.io/my_wallet/?json=%7B%22selling_asset_code%22:%22USD%22,%22selling_asset_issuer%22:%22GBEK5BFCXBYPZ5JAP2XUWM637PYBQNTL5Y2MVZYV2NBRH6OYS4HCWTWO%22,%22selling_price%22:%221.34%22,%22buying_asset_code%22:%22FUNT%22,%22buing_asset_issuer%22:%22GBEK5BFCXBYPZ5JAP2XUWM637PYBQNTL5Y2MVZYV2NBRH6OYS4HCWTWO%22,%22selling_amount%22:%221.123%22%7D      
+       var bid_price = data[5];
+       var ask_price = data[4];
+       var asset_code = data[0];
+       var asset_issuer = data[1];
+       var asset_base_code = data[2];
+       var asset_base_issuer = data[3];
+       var trade_link = '<a href="' + _wallet_url + "?json=%7b%22selling_asset_code%22:%22"+asset_base_code+"%22,%22selling_asset_issuer%22:%22"+asset_base_issuer;
+       trade_link = trade_link + "%22,%22selling_price%22:%22"+ask_price+"%22,%22buying_asset_code%22:%22"+asset_code+"%22,%22buying_asset_issuer%22:%22"
+       trade_link = trade_link + asset_issuer+'%22%7d">Buy_'+asset_code+'</a>';
+       return trade_link;
+     }
+
+     function color_text(to_color) {
+        console.log("change_color_text" + to_color);
+       }
+
+     function change_color(text_color,background_color) {
+        console.log("change_color_text");
+        document.body.style.backgroundColor = background_color;
+        document.body.style.color = text_color;
+        var el = [
+	document.getElementsByTagName('p'),
+	document.getElementsByTagName('h1'),
+	document.getElementsByTagName('h2'),
+	document.getElementsByTagName('h3'),
+	document.getElementsByTagName('h4'),
+        document.getElementsByTagName('h5'),
+        document.getElementsByTagName('th'),
+	];
+        var i;
+        var j;
+	for ( i in el) {
+	  for (j in el[i]) {
+	    if (el[i][j].style){
+	     el[i][j].style.color = text_color;
+            }
+	  }
+	}
+      } 
+
+      var t_color = "black";
+      change_color(t_color,"#777");
+      //document.body.style.backgroundImage = 'url(' + 'images/small_waves_big_slow.gif' + ')';
+ 
+      //document.body.style.backgroundColor = "#777";
+     // array = [1,2,3,4]
+      function insRow(array,id) {
+        var cells = [];
+        var x = document.getElementById(id).insertRow(1);
+        for(var i = 0; i < array.length; i++) {
+          cells[i] = x.insertCell(i);        
+          cells[i].innerHTML = array[i];        
+        }     
+      }
+
+      
+
+  function clear_table(id) {
+    // stupid clear fix to allow table sort to work
+    console.log("clear_table");
+    var col_count = document.getElementById(id).rows[0].cells.length;      
+    var myTable = document.getElementById(id);
+    var rowCount = myTable.rows.length;
+    for (var x=rowCount-2; x>0; x--) {    
+      myTable.deleteRow(x);
+    }
+    var first_row = document.getElementById(id).rows[1].cells;
+    for (var x=col_count-1; x>=0; x--) {   
+      first_row[x].innerHTML = "";
+    }   
+ }
+     
+      
+  });
+
+</script>
+
+
+ 
+</head>
+<body>
+ <h1> Funtracker.site Asset Price History </h1>
+ <p> Values from the Stellar.org network order books</p>
+
+  <div style="overflow-x:auto;">
+	<table  id="table" class="not_sort1">
+		<thead>
+			<tr>
+				<th><h3>Asset Pair</h3></th>
+                <th><h3>Bid Price</h3></th>
+                <th><h3>Ask Price</h3></th>
+                <th><h3>History Chart</h3></th>
+                <th><h3>Buy Link</h3></th>
+				<th><h3>Asset Code</h3></th>
+				<th><h3>Asset Issuer</h3></th>
+				<th><h3>Asset Base</h3></th>
+				<th><h3>Asset Base Issuer</h3></th>                         				
+			</tr>
+		</thead>
+		<tbody>
+			<tr>				
+				
+			</tr>
+  			
+			
+		</tbody>
+  </table>
+	
+</div>	
+
+
+  
+</div>
+
+  <script type="text/javascript">
+  //window.addEventListener("load", function(event) {
+  console.log("here2?");
+
+  console.log("after");
+  </script>
+	
+</body>
+</html>
