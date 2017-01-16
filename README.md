@@ -9,3 +9,6 @@ to trade.
 The API server that is used here has been provided by funtracker.site. The API server is also available in public domain 
 that can be found at:  https://github.com/sacarlson/stellar_utility/tree/master/multi-sign-server.
 It can be setup on your own server were it will record history and provide the API for this web app if desired.
+
+At present the API WS feed from funtracker.site is http (no https) so we can't presently demo
+this web app from github.io. But you can try what is now hosted at http://www.funtracker.site/chart/index.html
